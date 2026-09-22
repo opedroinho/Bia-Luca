@@ -104,38 +104,61 @@
     flex-direction: column;
   }
 
-  /* spec: 110px / 91% / -6.6px across every span. Tracking is in em (-6.6/110)
+  /* spec: 97px / 93% / -5.82px across every span. Tracking is in em (-5.82/97)
      so it stays proportional as the size clamps down. */
   .title {
     margin: 0;
     font-weight: 400;
-    line-height: 0.91;
-  }
-
-  .title .line-script {
-    display: block;
-    font-family: var(--serif-italic);
-    font-style: italic;
-    font-weight: 400;
-    font-size: clamp(40px, min(7.64vw, 11.58vh), 110px);
-    letter-spacing: -0.06em;
+    line-height: 0.93;
   }
 
   .title .line {
     display: block;
-    font-size: clamp(40px, min(7.64vw, 11.58vh), 110px);
+    /* the four breaks are authored, not reflowed, so the title reads the same
+       at every width -- which means the type has to be sized to fit instead */
+    white-space: nowrap;
+    /* vw has to assume the narrowest desktop column, so it leaves the type
+       undersized on wide screens; the cqw rule below measures the column
+       itself and is what actually runs on current browsers. */
+    font-size: clamp(28px, min(9.5vw, 8vh), 97px);
     letter-spacing: -0.06em;
   }
 
-  /* "de" is upright 400 -- same weight as the roman around it, so only the
-     bold names below carry contrast on this line. */
-  .title .light {
+  @supports (font-size: 1cqw) {
+    .hero-left { container-type: inline-size; }
+
+    /* "de lar, Case." is the widest line at 4.743x its font-size, so 100/4.743
+       = 21.1cqw fills the column; 20.2 keeps ~4% against font rounding.
+       With four lines the height binds first on desktop: measured across
+       650-1080px viewports the title can take at most ~8.3vh before it pushes
+       the illustration past the locked viewport, so 8vh is the real cap. */
+    .title .line,
+    .title .line-script { font-size: min(20.2cqw, 8vh, 97px); }
+  }
+
+  /* the italic words inside a line ("companhia", "lar") */
+  .title .ital {
+    font-style: italic;
     font-weight: 400;
   }
 
   .title .line strong,
   .title .line-script strong {
     font-weight: 700;
+  }
+
+  /* --- hooks for the previous title, kept for the fallback above --- */
+  .title .line-script {
+    display: block;
+    font-family: var(--serif-italic);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(32px, min(5vw, 13vh), 97px);
+    letter-spacing: -0.06em;
+  }
+
+  .title .light {
+    font-weight: 400;
   }
 
   .title .amp {
@@ -165,7 +188,10 @@
   .hero-right {
     display: flex;
     flex-direction: column;
-    justify-content: center; /* rides with the viewport instead of a fixed offset */
+    /* bottom-aligned so the last detail block lands level with the artwork
+       across the hero, instead of floating at a vertical centre of its own */
+    justify-content: flex-end;
+    align-items: center;
     padding-top: 24px;
     width: 100%;
     max-width: 500px;
@@ -382,9 +408,14 @@
     height: 200%;
     z-index: 9999;
     pointer-events: none;
-    opacity: 0.22;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='240'><filter%20id='n'><feTurbulence%20type='fractalNoise'%20baseFrequency='0.75'%20numOctaves='4'%20stitchTiles='stitch'/><feColorMatrix%20type='saturate'%20values='0'/></filter><rect%20width='240'%20height='240'%20filter='url%28%23n%29'/></svg>");
+    /* multiply, not overlay: the page blue is light, and overlay resolves to
+       screen against a light backdrop, which washes the grain out completely.
+       feComponentTransfer flattens the turbulence alpha to opaque and stretches
+       the greys around a near-white mean, so the specks read as grain without
+       multiply dimming the whole page. */
+    opacity: 0.4;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='240'><filter%20id='n'><feTurbulence%20type='fractalNoise'%20baseFrequency='0.75'%20numOctaves='4'%20stitchTiles='stitch'/><feColorMatrix%20type='saturate'%20values='0'/><feComponentTransfer><feFuncR%20type='linear'%20slope='1.25'%20intercept='0.105'/><feFuncG%20type='linear'%20slope='1.25'%20intercept='0.105'/><feFuncB%20type='linear'%20slope='1.25'%20intercept='0.105'/><feFuncA%20type='linear'%20slope='0'%20intercept='1'/></feComponentTransfer></filter><rect%20width='240'%20height='240'%20filter='url%28%23n%29'/></svg>");
     background-repeat: repeat;
     animation: grain 0.8s steps(1, end) infinite;
     will-change: transform;
@@ -436,6 +467,16 @@
        bottom-pinned art reverts to normal flow spacing */
     .hero { grid-template-columns: 1fr; gap: 8px; flex: 0 0 auto; }
     .hero-right { padding-top: 40px; justify-content: flex-start; max-width: 100%; }
+
+    /* stacked and scrollable, so the vh cap no longer applies -- width alone
+       decides how big the four authored lines can be */
+    .title .line,
+    .title .line-script { font-size: min(17.8vw, 97px); }
+    @supports (font-size: 1cqw) {
+      .title .line,
+      .title .line-script { font-size: min(20.2cqw, 97px); }
+    }
+
     .illustration { max-width: 240px; margin: 28px auto 0; padding-top: 0; }
     .countdown { font-size: clamp(12px, 3.6vw, 17.57px); padding-top: 14px; }
     .tabs { max-width: 100%; }
@@ -459,8 +500,6 @@
   @media (max-width: 520px) {
     .site-header { align-items: center; }
     .logo { height: 42px; }
-    .title .line-script,
-    .title .line { font-size: 14.5vw; }
     .illustration { max-width: 215px; }
     .detail-row { grid-template-columns: 1fr; gap: 2px; }
   }
@@ -481,10 +520,20 @@
 
   <main class="hero">
     <div class="hero-left">
+      <!-- Previous title, kept here so we can fall back to it. To revert, swap
+           this block with the <h1> below; its CSS hooks (.line-script, .light,
+           .amp) are still in the stylesheet.
       <h1 class="title">
         <span class="line-script">O casamento</span>
         <span class="line"><span class="light">de</span> <strong>Betriz</strong></span>
         <span class="line"><span class="amp">&amp;</span> <strong>Luca</strong></span>
+      </h1>
+      -->
+      <h1 class="title">
+        <span class="line">Quando a</span>
+        <span class="line"><span class="ital">companhia</span></span>
+        <span class="line">tiver gosto</span>
+        <span class="line">de <span class="ital">lar,</span> <strong>Case.</strong></span>
       </h1>
 
       <a class="btn btn-solid hero-cta" id="rsvp-link" target="_blank" rel="noopener">RSVP
@@ -498,7 +547,8 @@
 
     <div class="hero-right">
       <p class="description">
-        Depois de tantos momentos compartilhados, chegou a hora de celebrar um dos mais especiais. Estamos muito felizes em ter você conosco nesse dia.
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas arcu
+        enim, interdum sed volutpat ut, luctus quis magna. Suspendisse potenti.
       </p>
 
       <div class="tabs" id="tabs" data-active="recepcao">
